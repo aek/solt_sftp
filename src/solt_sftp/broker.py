@@ -47,13 +47,13 @@ class solt_broker(object):
                                  int(config.get('redis_port', 6379)), 
                                  int(config.get('redis_dbindex', 1)), 
                                  password=config.get('redis_pass', None))
-        self.channel = config.get('redis_channel', 'sftp_users')
+        self.channel = config.get('redis_channel', 'solt_sftp')
         self.root_folder = config.get('sftp_path','/opt/solt_sftp/files')
         
         self.authorized_keys = {}
         self.ids_to_users = {}
         
-        self.sftp_user_ids = self.redis_conn.smembers('solt.sftp.users')
+        self.sftp_user_ids = self.redis_conn.smembers('solt_sftp:users')
         if self.sftp_user_ids:
             for user_id in self.sftp_user_ids:
                 self.on_channel_user_handle({'data':user_id})
@@ -65,8 +65,8 @@ class solt_broker(object):
     
     def on_channel_user_handle(self, message):
         user_id = message.get('data')
-        user_key = 'solt.sftp.user.%s' % user_id
-        user_ssh_key = user_key+'.keys'
+        user_key = 'solt_sftp:user:%s' % user_id
+        user_ssh_key = user_key+':keys'
         user_obj = self.redis_conn.hgetall(user_key)
         
         if user_obj:
