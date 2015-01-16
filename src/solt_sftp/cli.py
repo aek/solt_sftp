@@ -75,7 +75,7 @@ def main():
     try:
         server.serve_forever()
     except (SystemExit,KeyboardInterrupt):
-        server.server_close()
+        server.close()
         
 # def create_database():
 #     models.Base.metadata.create_all(engine)

@@ -37,7 +37,9 @@ from paramiko.py3compat import u
 from wrapper import sftp_wrapper
 from broker import solt_broker
 
-solt_sftp_key = paramiko.RSAKey.from_private_key_file('solt_sftp.key')
+from config import config
+
+solt_sftp_key = paramiko.RSAKey.from_private_key_file(config.get('sftp_key', 'solt_sftp.key'))
 
 redis_broker = solt_broker()
 
@@ -58,6 +60,9 @@ class solt_interface(paramiko.ServerInterface):
     def check_auth_publickey(self, username, key):
         print('Auth attempt for '+username+' with key: ' + u(hexlify(key.get_fingerprint())))
         user_cfg = self.broker.authorized_keys.get(username, False)
+        if not user_cfg:
+            self.broker.channel_users_update()
+            user_cfg = self.broker.authorized_keys.get(username, False)
         if user_cfg and user_cfg.get('active', False) == 'True' and key.get_base64() in user_cfg.get('ssh-keys',[]):
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED

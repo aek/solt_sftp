@@ -43,6 +43,7 @@ class config_parser(object):
         group.add_option("-c", "--config", dest="config", help="specify alternate config file")
         group.add_option("--pidfile", dest="pidfile", default=False, help="file where the server pid will be stored")
         group.add_option("--sftp-path", dest="sftp_path", help="where the sftp server files will be stored")
+        group.add_option("--sftp-key", dest="sftp_key", help="where is the sftp server private key")
         group.add_option("--sftp-port", dest="sftp_port", type="int", default=220, help="in what port the sftp server will be listen")
         parser.add_option_group(group)
 

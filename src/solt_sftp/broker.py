@@ -114,4 +114,10 @@ class solt_broker(object):
         except KeyboardInterrupt:
             pass
         
-        
+    def channel_users_update(self):
+        user_ids = self.redis_conn.smembers('solt_sftp:users')
+        if user_ids:
+            user_list = [{'data':user} for user in user_ids if user not in self.ids_to_users]
+            if user_list:
+                for user_data in user_list:
+                    self.on_channel_user_handle(user_data)
