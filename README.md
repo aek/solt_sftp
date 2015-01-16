@@ -19,10 +19,10 @@ Here is a simply python script that add a new user to Redis an notify about the 
 ```
 import redis
 redis_conn = redis.Redis('localhost',6379, 1, None)
-next_user_id = redis_conn.scard('solt.sftp.users') + 1
-redis_conn.sadd('solt.sftp.users', next_user_id)
-redis_conn.hmset('solt.sftp.user.%s'% next_user_id, {'name': 'test','active': True,})
-redis_conn.sadd('solt.sftp.user.%s.keys'% next_user_id, 'AAVGB3NzaC1yc2EAFSADAQABAAABAQDq5t4e2WSKMzC2q0tOnl3c+UTj/LJoE9lMJubYGY95GbvIxOIBa+dDpd/wFhMiDxz7vNpb5JH2rrJFzisHmW+2fb5tkTZhoXMtaU2Z3ble61DvyBS2mtBE/uc2e5XCNdNSx17fuPRIHFT0o1kJJcibY+fXz81XYZGzSTXfHO7fX99M1oWD2SCU6Yv/kOsD9YBsop+MPc7czMwDX9sftevZ2G0f3+gN/1tC3iQUUHxaemPqin9dsdiqTVk/0gAiq1T5PE6vb0vo1g64UZElvmhtN2nBsteMhQiblVoMJzusmMwMiD1dMSp2VA2a8NcYx+hUMdPODqGDBSowmTQ/7n/7')
+next_user_id = redis_conn.scard('solt_sftp:users') + 1
+redis_conn.sadd('solt_sftp:users', next_user_id)
+redis_conn.hmset('solt_sftp:user:%s'% next_user_id, {'name': 'test','active': True,})
+redis_conn.sadd('solt_sftp:user:%s:keys'% next_user_id, 'AAVGB3NzaC1yc2EAFSADAQABAAABAQDq5t4e2WSKMzC2q0tOnl3c+UTj/LJoE9lMJubYGY95GbvIxOIBa+dDpd/wFhMiDxz7vNpb5JH2rrJFzisHmW+2fb5tkTZhoXMtaU2Z3ble61DvyBS2mtBE/uc2e5XCNdNSx17fuPRIHFT0o1kJJcibY+fXz81XYZGzSTXfHO7fX99M1oWD2SCU6Yv/kOsD9YBsop+MPc7czMwDX9sftevZ2G0f3+gN/1tC3iQUUHxaemPqin9dsdiqTVk/0gAiq1T5PE6vb0vo1g64UZElvmhtN2nBsteMhQiblVoMJzusmMwMiD1dMSp2VA2a8NcYx+hUMdPODqGDBSowmTQ/7n/7')
 redis_conn.publish('sftp_users', str(next_user_id))
 ```
 You could use the Redis publish to the channel method to update or create users or simply restart the server.
@@ -40,7 +40,7 @@ redis_host=localhost
 redis_port=6379
 redis_dbindex=1
 redis_pass=None
-redis_channel=sftp_users
+redis_channel=solt_sftp
 ```
 
 You can specify those options in a config file or directly in the commandline with the prefix --. The config file can be passed using --config option in the commandline

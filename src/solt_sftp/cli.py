@@ -24,8 +24,6 @@ SOFTWARE.
 """
 
 from paramiko.rsakey import RSAKey
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 import os
 import sys
@@ -85,9 +83,3 @@ def main():
 def create_new_key():
     key = RSAKey.generate(2048)
     key.write_private_key_file('solt_sftp.key')
-    
-def create_engine():
-    engine = create_engine(dsn_template.format(config.options))
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
