@@ -94,11 +94,10 @@ class config_parser(object):
         parser.add_option_group(group)
 
         # Copy all optparse options (i.e. MyOption) into self.options.
-        no_default = ('NO', 'DEFAULT')
+        
         for group in parser.option_groups:
             for option in group.option_list:
-                if option.default != no_default:
-                    self.options[option.dest] = option.default
+                self.options[option.dest] = option.default
                 self.casts[option.dest] = option
 
     def parse_config(self, args=None):
@@ -118,8 +117,8 @@ class config_parser(object):
         self.config_file = os.path.abspath(opt.config)
         
         keys = [
-            'redis_dbindex', 'redis_pass', 'redis_host', 'sftp_key',
-            'redis_port', 'logfile', 'pidfile', 'sftp_path', 
+            'redis_dbindex', 'redis_pass', 'redis_host', 'redis_port', 
+            'logfile', 'pidfile', 'sftp_path', 'sftp_key',
             'workers', 'limit_memory_hard', 'limit_memory_soft', 
             'limit_time_cpu', 'limit_time_real', 'limit_request'
         ]
