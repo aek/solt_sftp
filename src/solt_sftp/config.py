@@ -116,20 +116,14 @@ class config_parser(object):
         # Ensures no illegitimate argument is silently discarded (avoids insidious "hyphen to dash" problem)
         die(args, "unrecognized parameters: '%s'" % " ".join(args))
         self.config_file = os.path.abspath(opt.config)
-        self.load()
-    
-        # Verify that we want to log or not, if not the output will go to stdout
-        if self.options['logfile'] in ('None', 'False'):
-            self.options['logfile'] = False
-        # the same for the pidfile
-        if self.options['pidfile'] in ('None', 'False'):
-            self.options['pidfile'] = False
-    
-        # if defined dont take the configfile value even if the defined value is None
-        keys = ['redis_dbindex', 'redis_pass', 'redis_host',
-                'redis_port', 'logfile', 'pidfile', 'sftp_path',
+        
+        keys = [
+            'redis_dbindex', 'redis_pass', 'redis_host', 'sftp_key',
+            'redis_port', 'logfile', 'pidfile', 'sftp_path', 
+            'workers', 'limit_memory_hard', 'limit_memory_soft', 
+            'limit_time_cpu', 'limit_time_real', 'limit_request'
         ]
-    
+        
         for arg in keys:
             # Copy the command-line argument (except the special case for log_handler, due to
             # action=append requiring a real default, so we cannot use the my_default workaround)
@@ -139,18 +133,14 @@ class config_parser(object):
             elif isinstance(self.options[arg], basestring) and self.casts[arg].type in optparse.Option.TYPE_CHECKER:
                 self.options[arg] = optparse.Option.TYPE_CHECKER[self.casts[arg].type](self.casts[arg], arg, self.options[arg])
         
-        # if defined but None take the configfile value
-        keys = [
-            'workers', 'limit_memory_hard', 'limit_memory_soft', 'limit_time_cpu', 'limit_time_real', 'limit_request'
-        ]
+        self.load()
     
-        for arg in keys:
-            # Copy the command-line argument...
-            if getattr(opt, arg) is not None:
-                self.options[arg] = getattr(opt, arg)
-            # ... or keep, but cast, the config file value.
-            elif isinstance(self.options[arg], basestring) and self.casts[arg].type in optparse.Option.TYPE_CHECKER:
-                self.options[arg] = optparse.Option.TYPE_CHECKER[self.casts[arg].type](self.casts[arg], arg, self.options[arg])
+        # Verify that we want to log or not, if not the output will go to stdout
+        if self.options['logfile'] in ('None', 'False'):
+            self.options['logfile'] = False
+        # the same for the pidfile
+        if self.options['pidfile'] in ('None', 'False'):
+            self.options['pidfile'] = False
     
     def load(self):
         p = ConfigParser.ConfigParser()
