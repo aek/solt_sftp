@@ -89,6 +89,8 @@ class solt_broker(object):
             if not os.path.exists(real_path):
                 os.makedirs(real_path)
             user_ssh = self.redis_conn.smembers(user_ssh_key)
+            
+            _logger.info("Add user %s", user_obj.get('name'))
             self.authorized_keys[user_obj.get('name')] = {
                 'id': user_id,
                 'name': user_obj.get('name'),
@@ -106,6 +108,7 @@ class solt_broker(object):
             try:
                 while True:
                     for msg in self.subscriber.listen():
+                        _logger.info('Message received in Redis channel for user management: %s', msg)
                         self.on_channel_user_handle(msg)
             except redis.ConnectionError, e:
                 if e.message not in EXPECTED_CONNECTION_ERRORS:

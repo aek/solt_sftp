@@ -30,6 +30,7 @@ from gevent.event import Event
 from binascii import hexlify
 import os
 import sys
+import logging
 
 import paramiko
 from paramiko.py3compat import u
@@ -38,6 +39,8 @@ from wrapper import sftp_wrapper
 from broker import solt_broker
 
 from config import config
+
+_logger = logging.getLogger(__name__)
 
 solt_sftp_key = paramiko.RSAKey.from_private_key_file(config.get('sftp_key', 'solt_sftp.key'))
 
@@ -58,12 +61,14 @@ class solt_interface(paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):
-        print('Auth attempt for '+username+' with key: ' + u(hexlify(key.get_fingerprint())))
+        _logger.info('Auth attempt for '+username+' with key: ' + u(hexlify(key.get_fingerprint())))
         user_cfg = self.broker.authorized_keys.get(username, False)
         if not user_cfg:
+            _logger.info('Username not found %s', username)
             self.broker.channel_users_update()
             user_cfg = self.broker.authorized_keys.get(username, False)
         if user_cfg and user_cfg.get('active', False) == 'True' and key.get_base64() in user_cfg.get('ssh-keys',[]):
+            _logger.info('Username %s found in Redis ', username)
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
     
