@@ -39,6 +39,10 @@ from wrapper import sftp_wrapper
 from broker import solt_broker
 
 from config import config
+from paramiko.sftp_server import SFTPServer
+from paramiko.sftp_handle import SFTPHandle
+from paramiko.sftp_attr import SFTPAttributes
+from paramiko.sftp import SFTP_OK
 
 _logger = logging.getLogger(__name__)
 
@@ -46,6 +50,20 @@ solt_sftp_key = paramiko.RSAKey.from_private_key_file(config.get('sftp_key', 'so
 
 redis_broker = solt_broker()
 
+class solt_handle(SFTPHandle):
+    def stat(self):
+        try:
+            return SFTPAttributes.from_stat(os.fstat(self.readfile.fileno()))
+        except OSError as e:
+            return SFTPServer.convert_errno(e.errno)
+
+    def chattr(self, attr):
+        try:
+            SFTPServer.set_file_attr(self.filename, attr)
+            return SFTP_OK
+        except OSError as e:
+            return SFTPServer.convert_errno(e.errno)
+        
 class solt_interface(paramiko.ServerInterface):
     def __init__(self, *largs, **kwargs):
         self.shell = Event()
@@ -108,7 +126,44 @@ class solt_interface(paramiko.ServerInterface):
         return real_path
 
     def open(self, path, flags, attr):
-        return True
+        path = self.get_fs_path(path)
+        try:
+            binary_flag = getattr(os, 'O_BINARY',  0)
+            flags |= binary_flag
+            mode = getattr(attr, 'st_mode', None)
+            if mode is not None:
+                fd = os.open(path, flags, mode)
+            else:
+                # os.open() defaults to 0777 which is
+                # an odd default mode for files
+                fd = os.open(path, flags, 0o666)
+        except OSError as e:
+            return SFTPServer.convert_errno(e.errno)
+        if (flags & os.O_CREAT) and (attr is not None):
+            attr._flags &= ~attr.FLAG_PERMISSIONS
+            SFTPServer.set_file_attr(path, attr)
+        if flags & os.O_WRONLY:
+            if flags & os.O_APPEND:
+                fstr = 'ab'
+            else:
+                fstr = 'wb'
+        elif flags & os.O_RDWR:
+            if flags & os.O_APPEND:
+                fstr = 'a+b'
+            else:
+                fstr = 'r+b'
+        else:
+            # O_RDONLY (== 0)
+            fstr = 'rb'
+        try:
+            f = os.fdopen(fd, fstr)
+        except OSError as e:
+            return SFTPServer.convert_errno(e.errno)
+        fobj = solt_handle(flags)
+        fobj.filename = path
+        fobj.readfile = f
+        fobj.writefile = f
+        return fobj
 
     def list_folder(self, path):
         real_path = self.get_fs_path(path)
