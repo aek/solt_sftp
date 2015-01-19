@@ -183,7 +183,7 @@ class solt_interface(paramiko.ServerInterface):
     def remove(self, path):
         real_path = self.get_fs_path(path)
         os.remove(real_path)
-        paramiko.SFTP_OK
+        return paramiko.SFTP_OK
 
     def rename(self, oldpath, newpath):
         real_oldpath = self.get_fs_path(oldpath)
