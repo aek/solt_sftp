@@ -205,15 +205,16 @@ class solt_interface(paramiko.ServerInterface):
         return paramiko.SFTP_OK
 
     def canonicalize(self, path):
-        real_path = self.get_fs_path(path)
-        if os.path.isabs(real_path):
-            out = os.path.normpath(real_path)
-        else:
-            out = os.path.normpath('/' + real_path)
+#         real_path = self.get_fs_path(path)
+#         if os.path.isabs(real_path):
+#             out = os.path.normpath(real_path)
+#         else:
+#             out = os.path.normpath('/' + real_path)
+        out = path
         if sys.platform == 'win32':
             # on windows, normalize backslashes to sftp/posix format
             out = out.replace('\\', '/')
-        return out
+        return path
 
     def readlink(self, path):
         return paramiko.SFTP_OP_UNSUPPORTED
