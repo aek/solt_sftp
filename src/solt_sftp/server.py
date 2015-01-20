@@ -43,6 +43,7 @@ from paramiko.sftp_server import SFTPServer
 from paramiko.sftp_handle import SFTPHandle
 from paramiko.sftp_attr import SFTPAttributes
 from paramiko.sftp import SFTP_OK
+import base64
 
 _logger = logging.getLogger(__name__)
 
@@ -85,9 +86,14 @@ class solt_interface(paramiko.ServerInterface):
             _logger.info('Username not found %s', username)
             self.broker.channel_users_update()
             user_cfg = self.broker.authorized_keys.get(username, False)
-        if user_cfg and user_cfg.get('active', False) == 'True' and key.get_base64() in user_cfg.get('ssh-keys',[]):
-            _logger.info('Username %s found in Redis ', username)
-            return paramiko.AUTH_SUCCESSFUL
+        if user_cfg and user_cfg.get('active', False) == 'True':
+            remote_key_dec = base64.decodestring(key.get_base64())
+            remote_key_enc = base64.encodestring(remote_key_dec)
+            for user_key in user_cfg.get('ssh-keys',[]):
+                user_key_dec = base64.decodestring(user_key)
+                user_key_enc = base64.encodestring(user_key_dec)
+                if remote_key_enc == user_key_enc:
+                    return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
     
     def check_auth_gssapi_with_mic(self, username,
