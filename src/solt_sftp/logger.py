@@ -61,7 +61,7 @@ def init_logger():
 
     # Configure handlers
     default_config = [
-        ':INFO',
+        ':DEBUG',
     ]
     
     for logconfig_item in default_config:

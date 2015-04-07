@@ -69,11 +69,13 @@ from Crypto.Cipher import Blowfish, AES, DES3, ARC4
 from gevent.event import Event
 from gevent.threading import Lock
 from gevent._threading import Condition
+import logging
 try:
     from Crypto.Util import Counter
 except ImportError:
     from paramiko.util import Counter
     
+_logger = logging.getLogger(__name__)
 
 class sftp_wrapper(object):
     
@@ -256,7 +258,7 @@ class sftp_wrapper(object):
         self.clear_to_send_lock = Lock()
         self.clear_to_send_timeout = 30.0
         self.log_name = 'paramiko.transport'
-        self.logger = util.get_logger(self.log_name)
+        self.logger = _logger#util.get_logger(self.log_name)
         self.packetizer.set_log(self.logger)
         self.auth_handler = None
         self.global_response = None     # response Message from an arbitrary global request
