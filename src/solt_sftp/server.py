@@ -176,7 +176,7 @@ class solt_interface(paramiko.ServerInterface):
         rc = []
         for filename in os.listdir(real_path):
             full_name = ("%s/%s" % (real_path, filename)).replace("//", "/")
-            rc.append(paramiko.SFTPAttributes.from_stat(os.stat(full_name), filename.replace(self.broker.root_folder, '')))
+            rc.append(paramiko.SFTPAttributes.from_stat(os.stat(full_name), filename.replace(self.broker.root_folder, '').encode('utf-8')))
         return rc
  
     def stat(self, path):
