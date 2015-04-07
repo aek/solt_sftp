@@ -64,7 +64,10 @@ class solt_broker(object):
     
     def on_channel_user_handle(self, message):
         user_name = message.get('data')
-        user_id = self.sftp_user_ids[user_name]
+        if self.sftp_user_ids.get(user_name, False):
+            user_id = self.sftp_user_ids[user_name]
+        else:
+            user_id = self.redis_conn.hget('solt_sftp:user', user_name)
         user_key = 'solt_sftp:user:%s:data' % user_id
         user_ssh_key = 'solt_sftp:user:%s:keys' % user_id
         user_data = self.redis_conn.hgetall(user_key)
