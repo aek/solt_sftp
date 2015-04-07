@@ -51,12 +51,11 @@ class solt_broker(object):
         self.root_folder = config.get('sftp_path','/opt/solt_sftp/files')
         
         self.authorized_keys = {}
-        self.ids_to_users = {}
         
-        self.sftp_user_ids = self.redis_conn.smembers('solt_sftp:users')
+        self.sftp_user_ids = self.redis_conn.hgetall('solt_sftp:user')
         if self.sftp_user_ids:
-            for user_id in self.sftp_user_ids:
-                self.on_channel_user_handle({'data':user_id})
+            for user_name in self.sftp_user_ids:
+                self.on_channel_user_handle({'data':user_name})
         else:
             self.sftp_user_ids = []
         
@@ -64,24 +63,15 @@ class solt_broker(object):
         self.subscriber_greenlet = gevent.spawn(self.listener)
     
     def on_channel_user_handle(self, message):
-        user_id = message.get('data')
-        user_key = 'solt_sftp:user:%s' % user_id
-        user_ssh_key = user_key+':keys'
-        user_obj = self.redis_conn.hgetall(user_key)
+        user_name = message.get('data')
+        user_id = self.sftp_user_ids[user_name]
+        user_key = 'solt_sftp:user:%s:data' % user_id
+        user_ssh_key = 'solt_sftp:user:%s:keys' % user_id
+        user_data = self.redis_conn.hgetall(user_key)
         
-        if user_obj:
-            if self.ids_to_users.get(user_id,False) and \
-                    self.authorized_keys.get(user_obj.get('name'), False) and \
-                    self.authorized_keys.get(user_obj.get('name')).get('id') != user_id: 
-                existing_user = self.ids_to_users.get(self.authorized_keys.get(user_obj.get('name')).get('id'), False) #username of mapped id
-                if existing_user and existing_user != user_obj.get('name'):
-                    _logger.error("Already existing username with different ID - actual: (id,%s => user,%s) new: (user,%s => id,%s) -", user_id, self.ids_to_users[user_id], user_obj.get('name'), self.authorized_keys[user_obj.get('name')].get('id'))
-                    return
-            else:
-                if self.ids_to_users.get(user_id,False):
-                    self.ids_to_users[user_id] = user_obj.get('name')
-            if user_obj.get('folder', False):
-                folder = user_obj.get('folder')
+        if user_data:
+            if user_data.get('folder', False):
+                folder = user_data.get('folder')
             else:
                 folder = uuid.uuid4().hex
                 self.redis_conn.hset(user_key, 'folder', folder)
@@ -90,18 +80,15 @@ class solt_broker(object):
                 os.makedirs(real_path)
             user_ssh = self.redis_conn.smembers(user_ssh_key)
             
-            _logger.info("Add user %s", user_obj.get('name'))
-            self.authorized_keys[user_obj.get('name')] = {
+            _logger.info("Add user %s", user_data.get('name'))
+            self.authorized_keys[user_name] = {
                 'id': user_id,
-                'name': user_obj.get('name'),
+                'name': user_data.get('name'),
                 'ssh-keys': tuple(user_ssh),
-                'active': user_obj.get('active'),
+                'active': user_data.get('active'),
                 'folder': folder,
             }
-        elif self.ids_to_users.get(user_id,False):
-            self.authorized_keys.pop(self.ids_to_users.get(user_id), False)
-            self.ids_to_users.pop(user_id, False)
-
+        
     def listener(self):
         self.subscriber.subscribe(self.channel)
         try:
@@ -117,10 +104,7 @@ class solt_broker(object):
         except KeyboardInterrupt:
             pass
         
-    def channel_users_update(self):
-        user_ids = self.redis_conn.smembers('solt_sftp:users')
-        if user_ids:
-            user_list = [{'data':user} for user in user_ids if user not in self.ids_to_users]
-            if user_list:
-                for user_data in user_list:
-                    self.on_channel_user_handle(user_data)
+    def channel_user_update(self, user_name):
+        user_id = self.redis_conn.hget('solt_sftp:user', user_name)
+        if user_id:
+            self.on_channel_user_handle({'data':user_name})

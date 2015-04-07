@@ -8,9 +8,9 @@ This SFTP implementation supports only publickey authentication, even when add t
 Redis is used to store the users configuration and Redis PubSub channels used to notify for changes in the user config to reload the changed data without restarting the server.
 The user data in Redis is stored under the keys:
 ```
-'solt.sftp.users': a Redis Set DataType to hold the users ids typically integers used to retrieve the user data.
-'solt.sftp.user.#': a Redis Hash DataType to store the user fields data ('name', 'folder', 'active'). The # in the keys refers to the id of the user that the data belong.
-'solt.sftp.user.#.keys': a Redis Set DataType to hold the user ssh-keys used to authenticate the ssh sessions. The # in the keys refers to the id of the user that the ssh-keys belong.
+'solt_sftp:user': a Redis Hash DataType to hold the pairs of user_name/user_id used to retrieve the user data.
+'solt_sftp:user:#:data': a Redis Hash DataType to store the user fields data ('name', 'folder', 'active'). The # in the keys refers to the id of the user that the data belong.
+'solt_sftp:user:#:keys': a Redis Set DataType to hold the user ssh-keys used to authenticate the ssh sessions. The # in the keys refers to the id of the user that the ssh-keys belong.
 ```
 
 At startup the server load the user data from Redis and also get subscribed to a channel in Redis listening for message notifications to dinamically update the user config. The message expected is simply the id of the user whoom data has changed. The responsability of update the user data in Redis is external to the server.
@@ -19,11 +19,12 @@ Here is a simply python script that add a new user to Redis an notify about the 
 ```
 import redis
 redis_conn = redis.Redis('localhost',6379, 1, None)
-next_user_id = redis_conn.scard('solt_sftp:users') + 1
-redis_conn.sadd('solt_sftp:users', next_user_id)
-redis_conn.hmset('solt_sftp:user:%s'% next_user_id, {'name': 'test','active': True,})
+user_name = 'test'
+next_user_id = redis_conn.hlen('solt_sftp:user') + 1
+redis_conn.hset('solt_sftp:user', user_name, next_user_id)
+redis_conn.hmset('solt_sftp:user:%s:data'% next_user_id, {'name': user_name,'active': True,})
 redis_conn.sadd('solt_sftp:user:%s:keys'% next_user_id, 'AAVGB3NzaC1yc2EAFSADAQABAAABAQDq5t4e2WSKMzC2q0tOnl3c+UTj/LJoE9lMJubYGY95GbvIxOIBa+dDpd/wFhMiDxz7vNpb5JH2rrJFzisHmW+2fb5tkTZhoXMtaU2Z3ble61DvyBS2mtBE/uc2e5XCNdNSx17fuPRIHFT0o1kJJcibY+fXz81XYZGzSTXfHO7fX99M1oWD2SCU6Yv/kOsD9YBsop+MPc7czMwDX9sftevZ2G0f3+gN/1tC3iQUUHxaemPqin9dsdiqTVk/0gAiq1T5PE6vb0vo1g64UZElvmhtN2nBsteMhQiblVoMJzusmMwMiD1dMSp2VA2a8NcYx+hUMdPODqGDBSowmTQ/7n/7')
-redis_conn.publish('sftp_users', str(next_user_id))
+redis_conn.publish('sftp_users', user_name)
 ```
 You could use the Redis publish to the channel method to update or create users or simply restart the server.
 

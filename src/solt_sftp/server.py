@@ -84,7 +84,7 @@ class solt_interface(paramiko.ServerInterface):
         user_cfg = self.broker.authorized_keys.get(username, False)
         if not user_cfg:
             _logger.info('Username not found %s', username)
-            self.broker.channel_users_update()
+            self.broker.channel_user_update(username)
             user_cfg = self.broker.authorized_keys.get(username, False)
         if user_cfg and user_cfg.get('active', False) == 'True':
             remote_key_dec = base64.decodestring(key.get_base64())
@@ -216,10 +216,16 @@ class solt_interface(paramiko.ServerInterface):
 #             out = os.path.normpath(real_path)
 #         else:
 #             out = os.path.normpath('/' + real_path)
-        out = path
+        if path in ('./', '/.'):
+            path = '/'
+        for part in ('../', './'):
+            if part in path:
+                path = path.replace(part, '')
         if sys.platform == 'win32':
             # on windows, normalize backslashes to sftp/posix format
+            out = path
             out = out.replace('\\', '/')
+            return out
         return path
 
     def readlink(self, path):
