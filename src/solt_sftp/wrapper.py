@@ -1294,6 +1294,8 @@ class sftp_wrapper(object):
                 raise SSHException('Key-exchange timed out waiting for key negotiation')
         try:
             self._send_message(data)
+        except EOFError, e:
+            pass
         finally:
             self.clear_to_send_lock.release()
 
