@@ -1279,6 +1279,7 @@ class sftp_wrapper(object):
         send a message, but block if we're in key negotiation.  this is used
         for user-initiated requests.
         """
+        self._log(DEBUG, '_send_user_message data: %s'%str(data))
         start = time.time()
         while True:
             self.clear_to_send.wait(0.1)
