@@ -44,6 +44,7 @@ from paramiko.sftp_handle import SFTPHandle
 from paramiko.sftp_attr import SFTPAttributes
 from paramiko.sftp import SFTP_OK
 import base64
+import shutil
 
 _logger = logging.getLogger(__name__)
 
@@ -173,39 +174,51 @@ class solt_interface(paramiko.ServerInterface):
 
     def list_folder(self, path):
         real_path = self.get_fs_path(path)
-        rc = []
-        for filename in os.listdir(real_path):
-            full_name = ("%s/%s" % (real_path, filename)).replace("//", "/")
-            rc.append(paramiko.SFTPAttributes.from_stat(os.stat(full_name), filename.replace(self.broker.root_folder, '').encode('utf-8')))
-        return rc
+        if os.path.exists(real_path):
+            rc = []
+            for filename in os.listdir(real_path):
+                full_name = ("%s/%s" % (real_path, filename)).replace("//", "/")
+                rc.append(paramiko.SFTPAttributes.from_stat(os.stat(full_name), filename.replace(self.broker.root_folder, '').encode('utf-8')))
+            return rc
+        return paramiko.SFTP_NO_SUCH_FILE
  
     def stat(self, path):
         real_path = self.get_fs_path(path)
-        return paramiko.SFTPAttributes.from_stat(os.stat(real_path), path)
+        if os.path.exists(real_path):
+            return paramiko.SFTPAttributes.from_stat(os.stat(real_path), path)
+        return paramiko.SFTP_NO_SUCH_FILE
 
     def lstat(self, path):
         return self.stat(path)
 
     def remove(self, path):
         real_path = self.get_fs_path(path)
-        os.remove(real_path)
-        return paramiko.SFTP_OK
+        if os.path.exists(real_path):
+            os.remove(real_path)
+            return paramiko.SFTP_OK
+        return paramiko.SFTP_NO_SUCH_FILE
 
     def rename(self, oldpath, newpath):
         real_oldpath = self.get_fs_path(oldpath)
         real_newpath = self.get_fs_path(newpath)
-        os.rename(real_oldpath, real_newpath)
-        return paramiko.SFTP_OK
+        if os.path.exists(real_oldpath):
+            os.rename(real_oldpath, real_newpath)
+            return paramiko.SFTP_OK
+        return paramiko.SFTP_NO_SUCH_FILE
 
     def mkdir(self, path, attr):
         real_path = self.get_fs_path(path)
+        if os.path.exists(real_path):
+            return paramiko.SFTP_PERMISSION_DENIED
         os.makedirs(real_path)
         return paramiko.SFTP_OK
 
     def rmdir(self, path):
         real_path = self.get_fs_path(path)
-        os.rmdir(real_path)
-        return paramiko.SFTP_OK
+        if os.path.exists(real_path):
+            shutil.rmtree(real_path, ignore_errors=True)
+            return paramiko.SFTP_OK
+        return paramiko.SFTP_NO_SUCH_FILE
 
     def chattr(self, path, attr):
         return paramiko.SFTP_OK
