@@ -76,7 +76,7 @@ def main():
         def handle(self):
             handle_sftp_session(self.request, self.client_address)
     
-    server = SocketServer.TCPServer(('0.0.0.0', int(config.options.get('sftp_port',2200))), solt_tcp_handler)
+    server = SocketServer.ThreadingTCPServer(('0.0.0.0', int(config.options.get('sftp_port',2200))), solt_tcp_handler)
     _logger.info('Solt SFTP server is running and waiting for connections...')
     try:
         server.serve_forever()
