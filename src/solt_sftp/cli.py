@@ -31,8 +31,9 @@ import logging
 
 from config import config
 from logger import init_logger
-from gevent.server import StreamServer
 
+# from gevent.server import StreamServer
+import SocketServer
 
 _logger = logging.getLogger(__name__)
 
@@ -68,9 +69,14 @@ def main():
     check_root_user()
     init_logger()
     setup_pid_file()
-    
+
     from server import handle_sftp_session
-    server = StreamServer(('0.0.0.0', int(config.options.get('sftp_port',2200))), handle_sftp_session)
+    class solt_tcp_handler(SocketServer.BaseRequestHandler):
+    
+        def handle(self):
+            handle_sftp_session(self.request, self.client_address)
+    
+    server = SocketServer.TCPServer(('0.0.0.0', int(config.options.get('sftp_port',2200))), solt_tcp_handler)
     _logger.info('Solt SFTP server is running and waiting for connections...')
     try:
         server.serve_forever()
