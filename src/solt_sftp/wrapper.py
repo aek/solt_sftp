@@ -1279,7 +1279,6 @@ class sftp_wrapper(object):
         send a message, but block if we're in key negotiation.  this is used
         for user-initiated requests.
         """
-        self._log(DEBUG, '_send_user_message data: %s'%str(data))
         start = time.time()
         while True:
             self.clear_to_send.wait(0.1)
@@ -1294,8 +1293,6 @@ class sftp_wrapper(object):
                 raise SSHException('Key-exchange timed out waiting for key negotiation')
         try:
             self._send_message(data)
-        except EOFError, e:
-            pass
         finally:
             self.clear_to_send_lock.release()
 
