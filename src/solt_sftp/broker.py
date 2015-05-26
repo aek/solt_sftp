@@ -24,12 +24,10 @@ SOFTWARE.
 """
 
 import logging
-import gevent
-from gevent import socket as gsock
 import redis
 import uuid
 import os
-redis.connection.socket = gsock
+from thread import start_new_thread
 
 from config import config
 
@@ -60,7 +58,7 @@ class solt_broker(object):
             self.sftp_user_ids = []
         
         self.subscriber = self.redis_conn.pubsub()
-        self.subscriber_greenlet = gevent.spawn(self.listener)
+        self.subscriber_greenlet = start_new_thread(self.listener,(),{})
     
     def on_channel_user_handle(self, message):
         user_name = message.get('data')

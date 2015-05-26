@@ -26,6 +26,7 @@ SOFTWARE.
 import os
 import socket
 import sys
+import threading
 import time
 import weakref
 from hashlib import md5, sha1
@@ -66,9 +67,7 @@ from paramiko.ssh_exception import (SSHException, BadAuthenticationType,
 from paramiko.util import retry_on_signal, ClosingContextManager, clamp_value
 
 from Crypto.Cipher import Blowfish, AES, DES3, ARC4
-from gevent.event import Event
-from gevent.threading import Lock
-from gevent._threading import Condition
+
 import logging
 try:
     from Crypto.Util import Counter
@@ -240,7 +239,7 @@ class sftp_wrapper(object):
         self.in_kex = False
         self.authenticated = False
         self._expected_packet = tuple()
-        self.lock = Lock()    # synchronization (always higher level than write_lock)
+        self.lock = threading.Lock()    # synchronization (always higher level than write_lock)
 
         # tracking open channels
         self._channels = ChannelMap()
@@ -254,8 +253,8 @@ class sftp_wrapper(object):
         self._tcp_handler = None
 
         self.saved_exception = None
-        self.clear_to_send = Event()
-        self.clear_to_send_lock = Lock()
+        self.clear_to_send = threading.Event()
+        self.clear_to_send_lock = threading.Lock()
         self.clear_to_send_timeout = 30.0
         self.log_name = 'paramiko.transport'
         self.logger = _logger#util.get_logger(self.log_name)
@@ -270,10 +269,10 @@ class sftp_wrapper(object):
         self.server_object = server_object
         self.server_key_dict = {}
         self.server_accepts = []
-        self.server_accept_cv = Condition(self.lock)
+        self.server_accept_cv = threading.Condition(self.lock)
         self.subsystem_table = {}
         
-        self.shell = Event()
+        self.shell = threading.Event()
     
     def __repr__(self):
         """
@@ -381,7 +380,7 @@ class sftp_wrapper(object):
             return
 
         # synchronous, wait for a result
-        self.completion_event = event = Event()
+        self.completion_event = event = threading.Event()
         self.run()
         while True:
             event.wait(0.1)
@@ -634,7 +633,7 @@ class sftp_wrapper(object):
                 m.add_int(src_addr[1])
             chan = Channel(chanid)
             self._channels.put(chanid, chan)
-            self.channel_events[chanid] = event = Event()
+            self.channel_events[chanid] = event = threading.Event()
             self.channels_seen[chanid] = True
             chan._set_transport(self)
             chan._set_window(window_size, max_packet_size)
@@ -747,7 +746,7 @@ class sftp_wrapper(object):
         :raises SSHException: if the key renegotiation failed (which causes the
             session to end)
         """
-        self.completion_event = Event()
+        self.completion_event = threading.Event()
         self._send_kex_init()
         while True:
             self.completion_event.wait(0.1)
@@ -792,7 +791,7 @@ class sftp_wrapper(object):
             ``None`` if the request was denied.
         """
         if wait:
-            self.completion_event = Event()
+            self.completion_event = threading.Event()
         m = Message()
         m.add_byte(cMSG_GLOBAL_REQUEST)
         m.add_string(kind)
@@ -933,7 +932,7 @@ class sftp_wrapper(object):
         """
         if (not self.active) or (not self.initial_kex_done):
             raise SSHException('No existing session')
-        my_event = Event()
+        my_event = threading.Event()
         self.auth_handler = AuthHandler(self)
         self.auth_handler.auth_none(username, my_event)
         return self.auth_handler.wait_for_response(my_event)
@@ -987,7 +986,7 @@ class sftp_wrapper(object):
             # we should never try to send the password unless we're on a secure link
             raise SSHException('No existing session')
         if event is None:
-            my_event = Event()
+            my_event = threading.Event()
         else:
             my_event = event
         self.auth_handler = AuthHandler(self)
@@ -1054,7 +1053,7 @@ class sftp_wrapper(object):
             # we should never try to authenticate unless we're on a secure link
             raise SSHException('No existing session')
         if event is None:
-            my_event = Event()
+            my_event = threading.Event()
         else:
             my_event = event
         self.auth_handler = AuthHandler(self)
@@ -1110,7 +1109,7 @@ class sftp_wrapper(object):
         if (not self.active) or (not self.initial_kex_done):
             # we should never try to authenticate unless we're on a secure link
             raise SSHException('No existing session')
-        my_event = Event()
+        my_event = threading.Event()
         self.auth_handler = AuthHandler(self)
         self.auth_handler.auth_interactive(username, handler, my_event, submethods)
         return self.auth_handler.wait_for_response(my_event)
@@ -1134,7 +1133,7 @@ class sftp_wrapper(object):
         if (not self.active) or (not self.initial_kex_done):
             # we should never try to authenticate unless we're on a secure link
             raise SSHException('No existing session')
-        my_event = Event()
+        my_event = threading.Event()
         self.auth_handler = AuthHandler(self)
         self.auth_handler.auth_gssapi_with_mic(username, gss_host, gss_deleg_creds, my_event)
         return self.auth_handler.wait_for_response(my_event)
@@ -1159,7 +1158,7 @@ class sftp_wrapper(object):
         if (not self.active) or (not self.initial_kex_done):
             # we should never try to authenticate unless we're on a secure link
             raise SSHException('No existing session')
-        my_event = Event()
+        my_event = threading.Event()
         self.auth_handler = AuthHandler(self)
         self.auth_handler.auth_gssapi_keyex(username, my_event)
         return self.auth_handler.wait_for_response(my_event)
@@ -2093,7 +2092,7 @@ class ChannelMap (object):
     def __init__(self):
         # (id -> Channel)
         self._map = weakref.WeakValueDictionary()
-        self._lock = Lock()
+        self._lock = threading.Lock()
 
     def put(self, chanid, chan):
         self._lock.acquire()

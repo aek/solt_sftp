@@ -23,10 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from gevent.event import Event
-
-#monkey.patch_all()
-
+import threading
 from binascii import hexlify
 import os
 import sys
@@ -68,7 +65,7 @@ class solt_handle(SFTPHandle):
         
 class solt_interface(paramiko.ServerInterface):
     def __init__(self, *largs, **kwargs):
-        self.shell = Event()
+        self.shell = threading.Event()
         self.broker = kwargs.get('broker', None)
         self.wrapper = kwargs.get('wrapper', None)
 

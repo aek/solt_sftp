@@ -32,7 +32,6 @@ import logging
 from config import config
 from logger import init_logger
 
-# from gevent.server import StreamServer
 import SocketServer
 
 _logger = logging.getLogger(__name__)
