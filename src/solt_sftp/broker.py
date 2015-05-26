@@ -25,11 +25,11 @@ SOFTWARE.
 
 import logging
 import gevent
-
+from gevent import socket as gsock
 import redis
 import uuid
 import os
-redis.connection.socket = gevent.socket
+redis.connection.socket = gsock
 
 from config import config
 
